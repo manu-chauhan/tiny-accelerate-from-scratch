@@ -1,5 +1,5 @@
 # tiny-accelerate
-A minimal working 🤗 Accelerate + Nanotron for multiple DL distributed and parallel training approaches
+A minimal from scratch implementation of 🤗 Accelerate + Nanotron for multiple DL distributed and parallel training approaches
 
 ## Data Parallel
 1. bucket.py has `Bucket` and `BucketManager` and helps with gradient bucketing.
