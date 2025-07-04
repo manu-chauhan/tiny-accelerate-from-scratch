@@ -1,6 +1,6 @@
 import torch.distributed as dist
-
-
+import torch.nn as nn
+import torch
 class ManualNaiveDataParallel:
     """
     A manual naive data parallel implementation that uses torch.distributed for gradient synchronization.
@@ -79,3 +79,22 @@ class ManualNaiveDataParallel:
         for p in self.module.parameters():
             if p.grad is not None:
                 p.grad /= world_size
+
+class DataParallelBucket(nn.Module):
+    def __init__(self, module, bucket_cap_size_mb=25, grad_type=torch.float32):
+        super().__init__()
+        self.module = module
+        self.require_backward_grad_sync = True # whether to sync grads during backward pass or not, useful during accumulating gradients
+        each_grad_size = 2 if grad_type in [torch.float16, torch.bfloat16] else 4  # size in bytes for each grad type
+        self.bucket_cap_size_mb = bucket_cap_size_mb * 1024 * 1024 // each_grad_size # calculate number of grads in one bucket
+        self.register_backward_hook()
+        self._post_backward_hook_callback_set = False # whether the callback for wait gradient synchronization is set
+    def forward(self, *args, **kwargs):
+        return self.module(*args, **kwargs)
+
+    def backward(self, input_tensor, output_tensor, output_tensor_grad):
+        return self.module.backward(input_tensor, output_tensor, output_tensor_grad)
+
+    def register_backward_hook(self):
+
+
