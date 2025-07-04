@@ -1,5 +1,5 @@
-# tiny-huggingface-accelerate
-A minimal working 🤗 accelerate
+# tiny-accelerate
+A minimal working 🤗 accelerate + Nanotron for multiple DL parallel approaches
 
 
 ## `DataParallel.py` has:
