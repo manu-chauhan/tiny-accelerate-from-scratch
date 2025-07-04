@@ -10,6 +10,13 @@ class Bucket:
         self.process_group = process_group
         self.main_grads = [p.main_grad for p in params]
         self.handle = None
+        self.ready_params = set()
+
+    def mark_ready(self, param):
+        self.ready_params.add(param)
+        if len(self.ready_params) == len(self.params):
+            self.sync()
+            self.ready_params.clear()
 
     def sync(self):
         if self.handle is not None:
@@ -59,7 +66,8 @@ class BucketManager:
     def mark_param_as_ready(self, param):
         for bucket in self.buckets:
             if param in bucket.params:
-                bucket.sync()
+                # bucket.sync()
+                bucket.mark_ready(param)
                 break
 
     def wait(self):
