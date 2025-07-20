@@ -10,7 +10,7 @@ import bucket
 
 
 def setup(rank, world_size):
-    dist.init_process_group(backend='nccl', rank=rank, world_size=world_size)
+    dist.init_process_group(backend='nccl', rank=rank, world_size=world_size, init_method="tcp://127.0.0.1:12355")
     torch.cuda.set_device(f"cuda: {rank}")
 
 
@@ -40,7 +40,7 @@ def train(rank, world_size):
 
     model = get_deep_model(input_dim, hidden_dim, output_dim, depth, device).to(device)
 
-    dp_model = bucket.DataParallelBucket(model, bucket_cap_size_mb=25, grad_type=torch.float32)
+    dp_model = bucket.DataParallelBucket(model, bucket_cap_size_mb=2, grad_type=torch.float32)
 
     optimizer = torch.optim.SGD(model.parameters(), lr=0.01)
 
@@ -77,5 +77,5 @@ def train(rank, world_size):
 
 # Main execution
 if __name__ == "__main__":
-    world_size = 2
+    world_size = 1
     mp.spawn(train, args=(world_size,), nprocs=world_size, join=True)

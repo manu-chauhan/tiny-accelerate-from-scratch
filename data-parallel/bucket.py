@@ -1,10 +1,14 @@
 import torch
 import torch.nn as nn
 import torch.distributed as dist
-
+from typing import List, Union, Literal
 
 class Bucket:
-    def __init__(self, params, grad_type, process_group):
+    def __init__(self, 
+                    params: List[nn.Parameter],
+                    process_group: torch.distributed.ProcessGroup,
+                    grad_type: torch.dtype=torch.float32):
+        
         self.params = params
         self.grad_type = grad_type
         self.process_group = process_group
@@ -13,8 +17,12 @@ class Bucket:
         self.ready_params = set()
 
     def mark_ready(self, param):
+        assert param not in self.ready_params, "Hmm.. adding same param to bucket!"
+
         self.ready_params.add(param)
+        
         if len(self.ready_params) == len(self.params):
+            print(f"Syncing bucket...")
             self.sync()
             self.ready_params.clear()
 
@@ -43,6 +51,7 @@ class BucketManager:
         self.buckets = []
         self.process_group = process_group
         self.grad_type = grad_type
+        
         current_bucket_params = []
         current_size = 0
 

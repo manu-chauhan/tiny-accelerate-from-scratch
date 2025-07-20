@@ -82,20 +82,24 @@ class ManualNaiveDataParallel:
             if p.grad is not None:
                 p.grad /= world_size
 
-# class DataParallelBucket(nn.Module):
-#     def __init__(self, module, bucket_cap_size_mb=25, grad_type=torch.float32):
-#         super().__init__()
-#         self.module = module
-#         self.require_backward_grad_sync = True # whether to sync grads during backward pass or not, useful during accumulating gradients
-#         each_grad_size = 2 if grad_type in [torch.float16, torch.bfloat16] else 4  # size in bytes for each grad type
-#         self.bucket_cap_size_mb = bucket_cap_size_mb * 1024 * 1024 // each_grad_size # calculate number of grads in one bucket
-#         self.register_backward_hook()
-#         self._post_backward_hook_callback_set = False # whether the callback for wait gradient synchronization is set
-#     def forward(self, *args, **kwargs):
-#         return self.module(*args, **kwargs)
-#
-#     def backward(self, input_tensor, output_tensor, output_tensor_grad):
-#         return self.module.backward(input_tensor, output_tensor, output_tensor_grad)
-#
-#     def register_backward_hook(self):
-#
+class DataParallelNaive(nn.Module):
+    def __init__(self, module, process_group):
+        super().__init__()
+        self.module = module
+        self.process_group = process_group
+        self.require_backward_grad_sync = True
+        self.handles = self.register_backward_hook(self._allreduce_hook)
+
+    def register_backward_hook(self, hook):
+        handles = []
+        for p in self.module.parameters():
+            if p.requires_grad:
+                handles.append(p.register_hook(hook))
+        return handles
+
+    def _allreduce_hook(self, grad):
+        if grad is not None:
+            dist.all_reduce(grad, op=dist.ReduceOp.SUM, async_op=True, group=self.process_group)
+            # self.handles.append(work)
+            # grad /= pgm.process_group_manager.cp_dp_world_size
+        return grad
