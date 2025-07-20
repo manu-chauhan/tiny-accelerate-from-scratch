@@ -65,9 +65,9 @@ This approach is organized into three possible optimization stages:
 
 
 
-![image-20250718223119102](.\assets\image-20250718223119102.png)
+![](./assets/image-20250718223119102.png)
 
-![image-20250718232430935](.\assets\image-20250718232430935.png)
+![](./assets/image-20250718232430935.png)
 
 1. The idea of **ZeRO** is to **shard** these objects across Data Parallel ranks and *each node only stores a slice of these*.
 
@@ -75,7 +75,7 @@ This approach is organized into three possible optimization stages:
 
 
 
-![image-20250718232521043](.\assets\image-20250718232521043.png)
+![](./assets/image-20250718232521043.png)
 
 ### ZeRO-1: Partitioning optimizer states
 
@@ -90,7 +90,7 @@ This approach is organized into three possible optimization stages:
    4. Each replica performs an optimizer step on its local optimizer states (only 1/N_d of the optimizer states) to get  1/N_d updated FP32 parameters, which can then be converted to 1/N_d of the full set of BF16 parameters.
    5. Perform an all-gather on the BF16 parameters to send the missing slices  back to each replica. This is a new operation in ZeRO and is not used in vanilla DP.
 
-![](./assets/dp_zero1.GIF)
+![](https://github.com/manu-chauhan/tiny-accelerate-scratch/blob/main/assets/dp_zero1.gif)
 
 
 
