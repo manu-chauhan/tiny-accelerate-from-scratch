@@ -101,3 +101,39 @@ This approach is organized into three possible optimization stages:
 ![](./assets/dp_zero1_overlap.svg)
 
 Note: during the forward pass, each replica needs all the parameters. We thus need to add an additional ***all-gather\*** after the optimizer step so that each model replica has  the full set of updated weights.
+
+
+
+### ZeRO 2 Partitioning gradients too
+
+This is obvious thing, since we update sharded optimizer states for each GPU/Node, it makes sense to have only the corresponding gradients shards on that device and free up other gradients. 
+
+Thus, during the backward pass, instead of `all_reduce` we perform `reduce_scatter`.
+
+Here, we only store the 1/N_d gradients that are needed in memory, thus saving more memory compared to ZeRO-1.
+
+![](./assets/dp_zero2.gif)
+
+In terms of communication, the same process applies as for ZeRO-1, with  the only difference being that we communicate and release memory on the  fly.
+
+
+
+![](./assets/dp_zero2_overlap.svg)
+
+NOTE to self: The params are still not sharded, here, `all_gather` helps to have all *updated* params from each node as we need to perform forward pass after optimizer step is done. 
+
+
+
+### ZeRO 3 Parameter partitioning
+
+1. How to perform forward and backward now?
+
+2. Simple: gather then when needed.
+
+   ![](./assets/dp_zero3_fwd.svg)
+
+3. During forward pass, as we move through layers, we fetch the necessary parameters on demand and then flush them when not needed. 
+4. During backward we do same thing, instead we use `reduce_scatter` for gradients.
+5. ![](./assets/dp_zero3_bwd.svg)
+
+6. 
